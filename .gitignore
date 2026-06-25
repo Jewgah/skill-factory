@@ -1,0 +1,8 @@
+build/
+proposals/
+assets/icon.icns
+assets/icon.iconset/
+assets/_tmp.*
+__pycache__/
+*.pyc
+.DS_Store
