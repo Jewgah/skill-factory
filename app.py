@@ -9,6 +9,7 @@ import difflib
 import http.server
 import json
 import os
+import re
 import socketserver
 import subprocess
 import threading
@@ -19,6 +20,15 @@ REPO = os.path.dirname(os.path.abspath(__file__))
 PROPOSALS = os.path.join(REPO, "proposals")
 SKILLS = os.path.expanduser("~/.claude/skills")
 PORT = 4321
+
+# Skill names are kebab-case. Validating against this blocks path traversal (../, /) and
+# JS/HTML injection (quotes) through the browser-supplied `name` in one check.
+NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+GEN_LOCK = threading.Lock()  # one generation at a time: no token-burn, no same-second collision
+
+
+def safe_name(name):
+    return bool(name) and bool(NAME_RE.match(name))
 
 # ponytail: generation runs synchronously in the request thread (~2-4 min); fine on localhost
 # with a ThreadingHTTPServer. If it ever times out, switch to background job + status polling.
@@ -50,6 +60,8 @@ def load_latest():
 
 
 def skill_detail(name):
+    if not safe_name(name):
+        return {"name": name, "skill_md": "", "exists": False, "diff": ""}
     d = latest_dir()
     cand = None
     if d:
@@ -66,6 +78,8 @@ def skill_detail(name):
 
 
 def install(name):
+    if not safe_name(name):
+        return {"ok": False, "message": "invalid skill name"}
     d = latest_dir()
     if not d:
         return {"ok": False, "message": "no proposals to install"}
@@ -126,10 +140,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._json(install(name))
         if u.path == "/api/generate":
             days = int(self._body_json().get("days", 30))
+            if not GEN_LOCK.acquire(blocking=False):
+                return self._json({"ok": False, "message": "a generation is already running"}, 429)
             try:
                 return self._json(generate(days))
             except subprocess.TimeoutExpired:
                 return self._json({"ok": False, "message": "generation timed out (>10min)"}, 504)
+            finally:
+                GEN_LOCK.release()
         if u.path == "/api/quit":
             self._json({"ok": True})
             threading.Thread(target=self.server.shutdown, daemon=True).start()

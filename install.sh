@@ -11,7 +11,7 @@ FORCE="${2:-}"
 if [ -d "$ARG" ]; then SKILL="$ARG/SKILL.md"; else SKILL="$ARG"; fi
 [ -f "$SKILL" ] || { echo "no SKILL.md at $SKILL"; exit 1; }
 
-NAME="$(awk -F': *' '/^name:/{print $2; exit}' "$SKILL" | tr -d '\r')"
+NAME="$(awk -F': *' '/^name:/{print $2; exit}' "$SKILL" | tr -d '\r' | sed -e 's/^["'\'']//' -e 's/["'\'']$//')"
 [ -n "$NAME" ] || { echo "could not read 'name:' from $SKILL"; exit 1; }
 
 DEST="$HOME/.claude/skills/$NAME"

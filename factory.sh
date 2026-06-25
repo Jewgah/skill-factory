@@ -92,16 +92,18 @@ for c in data:
     if not name:
         continue
     sm = (c.get("skill_md") or "").strip()
-    if sm:
-        sd = os.path.join(d, name)
-        os.makedirs(sd, exist_ok=True)
-        open(os.path.join(sd, "SKILL.md"), "w").write(sm.rstrip() + "\n")
+    if not sm:
+        continue  # no drafted body -> uninstallable card; drop it
+    sd = os.path.join(d, name)
+    os.makedirs(sd, exist_ok=True)
+    with open(os.path.join(sd, "SKILL.md"), "w") as fh:
+        fh.write(sm.rstrip() + "\n")
     clean.append({"name": name, "description": c.get("description", ""),
                   "score": c.get("score"), "pillar": c.get("pillar", ""),
                   "evidence": c.get("evidence", ""), "skill_md": sm})
 
-json.dump({"stamp": os.path.basename(d), "candidates": clean},
-          open(os.path.join(d, "proposals.json"), "w"), indent=2, ensure_ascii=False)
+with open(os.path.join(d, "proposals.json"), "w") as fh:
+    json.dump({"stamp": os.path.basename(d), "candidates": clean}, fh, indent=2, ensure_ascii=False)
 with open(os.path.join(d, "RANKING.md"), "w") as f:
     f.write("# Skill candidates\n\n")
     for i, c in enumerate(clean, 1):
