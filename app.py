@@ -297,7 +297,8 @@ def main():
         return
     url = f"http://127.0.0.1:{PORT}/"
     print(f"Skill Factory UI: {url}  (Ctrl-C or the Quit button to stop)")
-    threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    if not os.environ.get("SF_NO_OPEN"):  # set SF_NO_OPEN=1 for headless/screenshot runs
+        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
