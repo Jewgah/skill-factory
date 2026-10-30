@@ -2,7 +2,7 @@
 
 **A Claude Code tool that studies how you actually work and writes new skills for you.**
 
-You build [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills) to automate
+You build [Claude Code skills](https://code.claude.com/docs/en/skills) to automate
 chores. The hard part is *noticing* the chore worth automating. Skill Factory does the noticing:
 it reads your own session history, finds the multi-step tasks you keep doing **by hand**, ranks
 them, and drafts ready-to-install skills. You review and click install. Nothing lands without you.
@@ -20,8 +20,10 @@ untagged pile, sorted by frequency, *is* your automation backlog. Skill Factory 
 Two stages, because your transcripts are big (hundreds of MB) and can't go into a prompt:
 
 1. **Scan** (`scan.py`, pure Python stdlib, read-only) streams your transcripts
-   (`~/.claude/projects/*/*.jsonl`) + skill-usage log, keeps only the manual multi-step turns,
-   and boils them down to a tiny JSON digest.
+   (`~/.claude/projects/*/*.jsonl`), keeps only the manual multi-step turns, and boils them down
+   to a tiny JSON digest. If you have `~/.claude/skill-usage.log` (written by the usage logger
+   hook from [claude-code-skills](https://github.com/Jewgah/claude-code-skills)), the digest also
+   lists your most-used existing skills; without it the scan works the same.
 2. **Draft** (`factory.sh`) makes **one** `claude -p` call that clusters the digest, ranks the
    top 5, and writes a complete `SKILL.md` for each. Output lands in `proposals/<stamp>/`.
 
@@ -52,12 +54,13 @@ bash install.sh proposals/<stamp>/<name> # install one (asks to confirm; diffs o
 - **Read-only** on your transcripts.
 - Drafts go to `proposals/` for review first; **nothing** is written to `~/.claude/skills`
   without your explicit confirm, and an existing skill is never overwritten without a shown diff.
-- No `ANTHROPIC_API_KEY` needed — it uses your `claude -p` subscription. The web server binds to
+- No `ANTHROPIC_API_KEY` needed: the one `claude -p` call runs with that variable removed, so it
+  bills whatever account your `claude` login uses, never a key exported in your shell. The web server binds to
   `127.0.0.1` only.
 
 ## Requirements
 
-- [Claude Code](https://docs.claude.com/en/docs/claude-code) on your `PATH` (`claude -p`).
+- [Claude Code](https://code.claude.com/docs) on your `PATH` (`claude -p`).
 - Python 3.9+ (stdlib only; the launcher icon also needs Pillow).
 
 ## Files
